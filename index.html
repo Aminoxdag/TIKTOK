@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>صانع مقاطع الفيديو</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212; 
+            color: #e0e0e0; 
+            overflow: hidden; /* Base overflow hidden */
+            height: 100%;
+            width: 100%;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; 
+            height: 100%; 
+            width: 100%;
+            box-sizing: border-box;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .container.feed-active .input-section {
+            display: none;
+        }
+        .container.feed-active .tiktok-feed {
+            display: block;
+        }
+
+        /* --- Styles for UI Hidden Mode --- */
+        .container.ui-hidden-mode .video-info,
+        .container.ui-hidden-mode .video-controls {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0.2s !important;
+        }
+        .container.ui-hidden-mode .progress-bar-container {
+            opacity: 1 !important; /* Progress bar remains visible */
+            visibility: visible !important;
+        }
+
+
+        body.global-ui-hidden #resetButtonContainer {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0.2s !important;
+        }
+
+
+        .input-section {
+            background-color: #1e1e1e; 
+            padding: 25px 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-section h1 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #ffffff;
+            font-size: 1.7em;
+            font-weight: 600;
+        }
+        
+        .input-section p.description {
+            font-size: 0.9em;
+            color: #a0a0a0;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        #videoUrl {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #383838;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1em;
+            text-align: left;
+        }
+        #videoUrl::placeholder {
+            color: #666;
+        }
+
+        #processButton {
+            padding: 12px 0; 
+            width: 100%;
+            background: linear-gradient(90deg, #FF007A 0%, #9C27B0 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+        }
+        #processButton:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(255, 0, 122, 0.3);
+        }
+        #processButton:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        #processButton:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #888;
+            min-height: 18px; 
+            text-align: center;
+        }
+
+        .tiktok-feed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh; 
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            background-color: #000;
+            display: none; 
+            z-index: 1000;
+        }
+        .tiktok-feed.scroll-locked {
+            overflow-y: hidden !important;
+            scroll-snap-type: none !important;
+        }
+
+
+        .video-slide {
+            width: 100%;
+            height: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+        }
+
+        .video-slide video {
+            width: 100%;
+            height: 100%;
+            object-position: 50% 50%;
+        }
+        .video-slide video.aspect-tiktok {
+            object-fit: cover; 
+        }
+        .video-slide video.aspect-original {
+            object-fit: contain; 
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 70px;
+            right: 15px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+        }
+        .control-button {
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(3px);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .control-button:hover {
+            background: rgba(50, 50, 50, 0.8);
+        }
+        .control-button:active {
+            transform: scale(0.9);
+        }
+        .control-button svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+        
+        .pan-slider-container {
+            width: 120px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: opacity 0.3s ease, visibility 0s linear 0s;
+            margin-top: 5px;
+        }
+        .pan-slider-container.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+        }
+        .pan-slider-track {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            position: relative;
+        }
+        .pan-slider-thumb {
+            width: 14px;
+            height: 14px;
+            background-color: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+        .video-info {
+            position: absolute;
+            bottom: 80px; 
+            left: 15px;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+            z-index: 10;
+            pointer-events: none;
+            max-width: calc(100% - 80px);
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+        }
+
+        .center-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 9;
+            backdrop-filter: blur(2px);
+        }
+        .center-play-button.visible {
+            display: flex;
+        }
+        .center-play-button svg {
+            width: 36px;
+            height: 36px;
+            fill: rgba(255,255,255,0.9);
+        }
+
+        #resetButtonContainer { 
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001; 
+            display: none; 
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+        }
+        #resetButton {
+            background: rgba(30, 30, 30, 0.5);
+            backdrop-filter: blur(5px);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #resetButton:hover {
+            background: rgba(50, 50, 50, 0.7);
+        }
+         #resetButton:active {
+            transform: scale(0.9);
+        }
+        #resetButton svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        #unlockUiButton {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-80px); 
+            z-index: 2001;
+            background: rgba(40, 40, 40, 0.7);
+            backdrop-filter: blur(8px);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s linear 0.3s; 
+        }
+        #unlockUiButton.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s linear 0s;
+        }
+        #unlockUiButton svg {
+            width: 24px; 
+            height: 24px;
+            fill: white;
+        }
+
+        .progress-bar-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px; 
+            background-color: rgba(100, 100, 100, 0.5); 
+            z-index: 11; 
+            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s; 
+        }
+
+        .progress-bar-indicator {
+            width: 0%;
+            height: 100%;
+            background-color: white;
+            transition: width 0.1s linear; /* Added for smooth progress animation */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="input-section" id="inputSection">
+            <h1>صانع المقاطع</h1>
+            <p class="description">ألصق رابط فيديو MP4 مباشر لتقسيمه إلى مقاطع شيقة بأسلوب تيك توك.</p>
+            <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4" value="https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4">
+            <button id="processButton">إنشاء المقاطع</button>
+            <p id="status"></p>
+        </div>
+
+        <div class="tiktok-feed" id="tiktokFeed">
+            </div>
+    </div>
+    <div id="resetButtonContainer">
+        <button id="resetButton"></button>
+    </div>
+    
+    <button id="unlockUiButton"></button>
+
+    <script>
+        const mainContainer = document.getElementById('mainContainer');
+        const videoUrlInput = document.getElementById('videoUrl');
+        const processButton = document.getElementById('processButton');
+        const statusElement = document.getElementById('status');
+        const tiktokFeed = document.getElementById('tiktokFeed');
+        const inputSection = document.getElementById('inputSection');
+        const resetButtonContainer = document.getElementById('resetButtonContainer');
+        const resetButton = document.getElementById('resetButton');
+        const unlockUiButton = document.getElementById('unlockUiButton');
+
+        const playIconSVG = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
+        const pauseIconSVG = `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`;
+        const volumeOnIconSVG = `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
+        const volumeOffIconSVG = `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"></path></svg>`;
+        const backIconSVG = `<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"></path></svg>`;
+        const aspectRatioOriginalIconSVG = `<svg viewBox="0 0 24 24"><path d="M19 12h-2v3h-3v2h5v-5zM5 7h5V5H5c-1.1 0-2 .9-2 2v5h2V7zm14-2h-5v2h5v5h2V5c0-1.1-.9-2-2-2zM5 19h3v-2H5v-3H3v5c0 1.1.9 2 2 2z"/></svg>`;
+        const aspectRatioTikTokIconSVG = `<svg fill="white" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 16H5V5h14v14zM9 7h6v2H9V7zm0 4h6v2H9v-2zm0 4h6v2H9v-2zM7 7h1v10H7V7zM16 7h1v10h-1V7z"/></svg>`;
+        const enterImmersiveIconSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path></svg>`;
+        const exitImmersiveIconSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"></path></svg>`;
+
+        let currentVideoUrl = '';
+        let videoSegments = [];
+        let currentPlayingVideo = null;
+        let segmentLoopListeners = new Map(); 
+        let intersectionObserver = null;
+        let isUiHidden = false;
+
+        let firstSwipeUpTime = 0; 
+        const SWIPE_UP_THRESHOLD = -70; 
+        const SWIPE_X_THRESHOLD = 50;
+        const DOUBLE_SWIPE_INTERVAL = 700;
+        let touchStartY = 0;
+        let touchStartX = 0;
+        let touchStartTime = 0;
+
+        // Function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Function to hide all UI elements for immersive mode
+        function hideAllUi() {
+            if (isUiHidden) return;
+            document.body.classList.add('global-ui-hidden');
+            mainContainer.classList.add('ui-hidden-mode');
+            tiktokFeed.classList.add('scroll-locked');
+            unlockUiButton.classList.remove('visible'); 
+            isUiHidden = true;
+            firstSwipeUpTime = 0; 
+        }
+
+        // Function to show all UI elements
+        function showAllUi() {
+            if (!isUiHidden) return;
+            document.body.classList.remove('global-ui-hidden');
+            mainContainer.classList.remove('ui-hidden-mode');
+            tiktokFeed.classList.remove('scroll-locked');
+            unlockUiButton.classList.remove('visible'); 
+            isUiHidden = false;
+        }
+        
+        // Function to reveal the unlock UI button
+        function revealUnlockButton() {
+            if (!isUiHidden || unlockUiButton.classList.contains('visible')) return;
+            unlockUiButton.innerHTML = exitImmersiveIconSVG; 
+            unlockUiButton.classList.add('visible');
+        }
+
+        // Event listener for the unlock UI button
+        unlockUiButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showAllUi();
+        });
+
+        // Touch event handlers for swipe gesture to reveal unlock button
+        function handleFeedTouchStart(e) {
+            if (!isUiHidden || unlockUiButton.classList.contains('visible')) {
+                 touchStartY = 0; 
+                 return;
+            }
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+        }
+
+        function handleFeedTouchEnd(e) {
+            if (!isUiHidden || touchStartY === 0 || unlockUiButton.classList.contains('visible')) return;
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const touchEndTime = Date.now();
+
+            const deltaX = Math.abs(touchEndX - touchStartX);
+            const deltaY = touchEndY - touchStartY; 
+            const deltaTime = touchEndTime - touchStartTime;
+
+            if (deltaY < SWIPE_UP_THRESHOLD && deltaX < SWIPE_X_THRESHOLD && deltaTime < 500) { 
+                const now = Date.now();
+                if (now - firstSwipeUpTime < DOUBLE_SWIPE_INTERVAL) {
+                    revealUnlockButton(); 
+                    firstSwipeUpTime = 0; 
+                } else {
+                    firstSwipeUpTime = now;
+                }
+            } else {
+                if (!(deltaY < SWIPE_UP_THRESHOLD && deltaX < SWIPE_X_THRESHOLD)) {
+                    firstSwipeUpTime = 0; 
+                }
+            }
+            touchStartY = 0;
+            touchStartX = 0;
+        }
+
+        tiktokFeed.addEventListener('touchstart', handleFeedTouchStart, { passive: true });
+        tiktokFeed.addEventListener('touchend', handleFeedTouchEnd, { passive: true });
+
+        // Event listener for the process video button
+        processButton.addEventListener('click', async () => {
+            const url = videoUrlInput.value.trim();
+            if (!url) {
+                statusElement.textContent = 'الرجاء إدخال رابط الفيديو.';
+                return;
+            }
+            currentVideoUrl = url;
+            statusElement.textContent = 'جاري تحميل بيانات الفيديو...';
+            processButton.disabled = true;
+            videoUrlInput.disabled = true;
+
+            try {
+                // Get video duration
+                const videoDuration = await getVideoDuration(url);
+                if (videoDuration === null || isNaN(videoDuration) || !isFinite(videoDuration)) {
+                    statusElement.textContent = 'فشل تحميل الفيديو. تحقق من الرابط وصلاحيات CORS.';
+                    resetInputUi();
+                    return;
+                }
+
+                statusElement.textContent = `مدة الفيديو: ${formatTime(videoDuration)}. جاري توليد المقاطع...`;
+                
+                // Determine number of clips to generate
+                const maxClips = 20;
+                const avgClipDurationTarget = 15; // seconds
+                let numClipsToGenerate = Math.floor(videoDuration / avgClipDurationTarget);
+                numClipsToGenerate = Math.min(maxClips, Math.max(1, numClipsToGenerate)); // Ensure between 1 and maxClips
+                                
+                // Generate video segments
+                videoSegments = generateSegments(videoDuration, numClipsToGenerate, 7, 25); // min 7s, max 25s clips
+                shuffleArray(videoSegments); 
+
+                if (videoSegments.length === 0) {
+                    statusElement.textContent = 'الفيديو قصير جدًا للتقسيم.';
+                    resetInputUi();
+                    return;
+                }
+
+                statusElement.textContent = `تم توليد ${videoSegments.length} مقاطع. جاري عرضها...`;
+                
+                // Switch to feed view
+                mainContainer.classList.add('feed-active');
+                resetButtonContainer.style.display = 'block'; // Show reset button
+                resetButton.innerHTML = backIconSVG;
+                showAllUi(); // Ensure UI is normal when starting
+
+                // Display video segments in the feed
+                displayVideoSegments();
+                tiktokFeed.scrollTop = 0; // Scroll to the top of the feed
+
+            } catch (error) {
+                console.error("Error processing video:", error);
+                statusElement.textContent = 'خطأ: ' + error.message;
+                resetInputUi();
+            }
+        });
+        
+        // Function to reset the input UI state
+        function resetInputUi() {
+            processButton.disabled = false;
+            videoUrlInput.disabled = false;
+        }
+
+        // Event listener for the reset button
+        resetButton.addEventListener('click', () => {
+            mainContainer.classList.remove('feed-active');
+            resetButtonContainer.style.display = 'none'; // Hide reset button
+            showAllUi(); 
+            
+            // Disconnect IntersectionObserver
+            if (intersectionObserver) {
+                document.querySelectorAll('.video-slide').forEach(slide => intersectionObserver.unobserve(slide));
+                intersectionObserver = null; 
+            }
+            
+            // Clean up progress bar listeners and reset bars
+            tiktokFeed.querySelectorAll('video').forEach(vid => {
+                if (vid._progressBarUpdater) {
+                    vid.removeEventListener('timeupdate', vid._progressBarUpdater);
+                    vid.removeEventListener('loadeddata', vid._progressBarUpdater); // Also remove if added here
+                    vid.removeEventListener('seeking', vid._progressBarUpdater);
+                    vid.removeEventListener('seeked', vid._progressBarUpdater);
+                    delete vid._progressBarUpdater;
+                }
+                const barIndicator = vid.closest('.video-slide')?.querySelector('.progress-bar-indicator');
+                if (barIndicator) barIndicator.style.width = '0%';
+            });
+
+            tiktokFeed.innerHTML = ''; // Clear the feed
+            
+            statusElement.textContent = '';
+            resetInputUi();
+
+            // Stop and clean up current playing video and listeners
+            if (currentPlayingVideo) {
+                currentPlayingVideo.pause();
+                if (segmentLoopListeners.has(currentPlayingVideo)) { 
+                    currentPlayingVideo.removeEventListener('timeupdate', segmentLoopListeners.get(currentPlayingVideo));
+                    segmentLoopListeners.delete(currentPlayingVideo);
+                }
+                currentPlayingVideo = null;
+            }
+            segmentLoopListeners.forEach((listener, video) => video.removeEventListener('timeupdate', listener));
+            segmentLoopListeners.clear();
+        });
+
+        // Function to get video duration
+        function getVideoDuration(url) {
+            return new Promise((resolve, reject) => {
+                const tempVideo = document.createElement('video');
+                tempVideo.preload = 'metadata';
+                tempVideo.src = url;
+                // Event listener for when metadata is loaded
+                const onMetadataLoaded = () => { 
+                    if (tempVideo.duration && isFinite(tempVideo.duration)) {
+                        resolve(tempVideo.duration);
+                    } else {
+                        reject(new Error("لم يتمكن من الحصول على مدة فيديو صالحة."));
+                    }
+                    cleanup(); 
+                };
+                // Event listener for errors loading the video
+                const errorHandler = (e) => { 
+                    let errorMsg = "خطأ في تحميل الفيديو.";
+                    if (tempVideo.error) {
+                        switch (tempVideo.error.code) {
+                            case 1: errorMsg = "تم إحباط جلب الفيديو."; break;
+                            case 2: errorMsg = "خطأ في الشبكة."; break;
+                            case 3: errorMsg = "خطأ في فك التشفير."; break;
+                            case 4: errorMsg = "مصدر الفيديو غير مدعوم أو مشكلة CORS."; break;
+                            default: errorMsg = `حدث خطأ غير معروف (${tempVideo.error.code}) أثناء تحميل الفيديو.`;
+                        }
+                    } else {
+                        errorMsg = "حدث خطأ غير معروف أثناء محاولة تحميل بيانات الفيديو."
+                    }
+                    reject(new Error(errorMsg)); 
+                    cleanup(); 
+                };
+                // Timeout for loading metadata
+                const timeoutId = setTimeout(() => { 
+                    reject(new Error("انتهت مهلة تحميل بيانات الفيديو (CORS أو رابط غير صالح).")); 
+                    cleanup();
+                    tempVideo.src = ""; // Attempt to stop further loading
+                }, 20000); // 20 seconds timeout
+
+                // Cleanup function to remove event listeners and clear timeout
+                function cleanup() {
+                    clearTimeout(timeoutId);
+                    tempVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
+                    tempVideo.removeEventListener('error', errorHandler);
+                }
+
+                tempVideo.addEventListener('loadedmetadata', onMetadataLoaded);
+                tempVideo.addEventListener('error', errorHandler);
+            });
+        }
+
+        // Function to generate random video segments
+        function generateSegments(totalDuration, numSegments, minClipDuration, maxClipDuration) {
+            const segments = [];
+            if (totalDuration < minClipDuration) return segments; // Not enough duration for any clip
+
+            for (let i = 0; i < numSegments; i++) {
+                let effectiveMaxDuration = Math.min(maxClipDuration, totalDuration);
+                if (minClipDuration > effectiveMaxDuration) continue; // Skip if min is greater than what's possible
+
+                let clipDuration = Math.random() * (effectiveMaxDuration - minClipDuration) + minClipDuration;
+                clipDuration = Math.min(clipDuration, totalDuration); // Ensure clip doesn't exceed total duration
+                if (clipDuration <= 0) continue; // Skip if duration is invalid
+
+                let startTime = Math.random() * (totalDuration - clipDuration);
+                startTime = Math.max(0, startTime); // Ensure startTime is not negative
+                segments.push({ start: startTime, duration: clipDuration });
+            }
+            return segments;
+        }
+        
+        // Function to handle playing a video segment
+        function handleVideoPlay(video, segmentData) {
+            if (!video || !segmentData) return;
+
+            // Remove any existing loop listener for this video
+            if (segmentLoopListeners.has(video)) {
+                video.removeEventListener('timeupdate', segmentLoopListeners.get(video));
+                segmentLoopListeners.delete(video);
+            }
+
+            // Set current time if it's significantly off or outside the segment
+            if (Math.abs(video.currentTime - segmentData.start) > 0.5 || video.currentTime < segmentData.start || video.currentTime > segmentData.start + segmentData.duration) {
+                video.currentTime = segmentData.start;
+            }
+            
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // Add a new loop listener
+                    const loopFunction = () => {
+                        if (video.currentTime >= segmentData.start + segmentData.duration - 0.15) { // Loop slightly before exact end
+                            video.currentTime = segmentData.start; // Loop back to start
+                        }
+                    };
+                    video.addEventListener('timeupdate', loopFunction);
+                    segmentLoopListeners.set(video, loopFunction);
+
+                    // Ensure progress bar updater is active and updates on play
+                    if (video._progressBarUpdater) {
+                        video._progressBarUpdater(); 
+                    }
+
+                }).catch(error => {
+                    if (error.name !== 'AbortError') { // Ignore AbortError which can happen if play is interrupted
+                        console.warn("Play interrupted or failed for segment:", segmentData, error); 
+                    }
+                    video.pause(); 
+                    const centerPlayBtn = video.closest('.video-slide')?.querySelector('.center-play-button');
+                    if (centerPlayBtn) centerPlayBtn.classList.add('visible');
+                    // Clean up listener if play failed
+                    if (segmentLoopListeners.has(video)) {
+                        video.removeEventListener('timeupdate', segmentLoopListeners.get(video));
+                        segmentLoopListeners.delete(video);
+                    }
+                });
+            }
+        }
+        
+        // Function to set up the pan slider for a video
+        function setupPanSlider(sliderContainer, videoElement) {
+            const thumb = sliderContainer.querySelector('.pan-slider-thumb'); 
+            const track = sliderContainer.querySelector('.pan-slider-track'); 
+            let isPanning = false;
+
+            const handlePan = (clientX) => { 
+                const trackRect = track.getBoundingClientRect(); 
+                let newLeft = clientX - trackRect.left; 
+                newLeft = Math.max(0, Math.min(trackRect.width, newLeft)); 
+                const percentage = (newLeft / trackRect.width) * 100; 
+                thumb.style.left = `${percentage}%`; 
+                videoElement.style.objectPosition = `${percentage}% 50%`; 
+            };
+            // Mouse events
+            const onMouseDown = (e) => { e.stopPropagation(); isPanning = true; sliderContainer.style.cursor = 'grabbing'; handlePan(e.clientX); document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
+            const onMouseMove = (e) => { if (isPanning) handlePan(e.clientX); }; 
+            const onMouseUp = () => { isPanning = false; sliderContainer.style.cursor = 'pointer'; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            // Touch events
+            const onTouchStart = (e) => { e.stopPropagation(); isPanning = true; handlePan(e.touches[0].clientX); document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); };
+            const onTouchMove = (e) => { if (isPanning) { e.preventDefault(); handlePan(e.touches[0].clientX); }}; 
+            const onTouchEnd = () => { isPanning = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); };
+            
+            sliderContainer.addEventListener('mousedown', onMouseDown); 
+            sliderContainer.addEventListener('touchstart', onTouchStart, { passive: true });
+        }
+
+        // Function to display video segments in the feed
+        function displayVideoSegments() {
+            tiktokFeed.innerHTML = ''; // Clear previous segments
+            videoSegments.forEach((segment, index) => {
+                const slide = document.createElement('div'); slide.classList.add('video-slide'); slide.setAttribute('data-index', index);
+                const videoElement = document.createElement('video'); 
+                videoElement.src = currentVideoUrl + '#t=' + segment.start.toFixed(2); 
+                videoElement.preload = 'metadata'; 
+                videoElement.muted = index !== 0; // Mute all but the first video initially
+                videoElement.loop = false; // Looping is handled by segmentLoopListeners
+                videoElement.playsInline = true; 
+                videoElement.classList.add('aspect-original'); // Default aspect ratio
+
+                // Video info display
+                const videoInfoDiv = document.createElement('div'); videoInfoDiv.classList.add('video-info'); 
+                videoInfoDiv.innerHTML = `<div class="segment-number">مقطع ${index + 1} / ${videoSegments.length}</div><div class="segment-time">${formatTime(segment.start)} - ${formatTime(segment.start + segment.duration)} (${Math.round(segment.duration)} ث)</div>`;
+                
+                // Controls container
+                const controlsContainer = document.createElement('div'); controlsContainer.classList.add('video-controls');
+                const panSliderContainer = document.createElement('div'); panSliderContainer.classList.add('pan-slider-container', 'hidden'); panSliderContainer.title = 'تحريك الفيديو أفقياً'; panSliderContainer.innerHTML = `<div class="pan-slider-track"><div class="pan-slider-thumb"></div></div>`;
+                
+                // UI Toggle Button
+                const toggleUiBtn = document.createElement('button'); toggleUiBtn.classList.add('control-button', 'toggle-ui-button'); toggleUiBtn.innerHTML = enterImmersiveIconSVG; toggleUiBtn.title = "إخفاء الواجهة (وضع التركيز)";
+                toggleUiBtn.addEventListener('click', (e) => { e.stopPropagation(); if (isUiHidden) { showAllUi(); } else { hideAllUi(); } });
+
+                // Aspect Ratio Button
+                const aspectRatioButton = document.createElement('button'); aspectRatioButton.classList.add('control-button', 'aspect-ratio-button'); aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG; aspectRatioButton.title = "تبديل نسبة العرض (9:16 / أصلي)";
+                aspectRatioButton.addEventListener('click', (e) => { e.stopPropagation(); if (videoElement.classList.contains('aspect-original')) { videoElement.classList.remove('aspect-original'); videoElement.classList.add('aspect-tiktok'); aspectRatioButton.innerHTML = aspectRatioOriginalIconSVG; panSliderContainer.classList.remove('hidden'); } else { videoElement.classList.remove('aspect-tiktok'); videoElement.classList.add('aspect-original'); aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG; panSliderContainer.classList.add('hidden'); } });
+                
+                // Mute Button
+                const muteButton = document.createElement('button'); muteButton.classList.add('control-button', 'mute-toggle-button'); muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; muteButton.title = "كتم/إلغاء كتم الصوت";
+                muteButton.addEventListener('click', (e) => { e.stopPropagation(); videoElement.muted = !videoElement.muted; });
+
+                // Center Play/Pause Button (overlay)
+                const centerPlayButton = document.createElement('button'); centerPlayButton.classList.add('center-play-button'); centerPlayButton.innerHTML = playIconSVG; 
+                
+                // Click on slide to play/pause
+                slide.addEventListener('click', (e) => { 
+                    if (isUiHidden) { 
+                        if (videoElement.paused && currentPlayingVideo === videoElement) {
+                             handleVideoPlay(videoElement, segment);
+                        } else if (currentPlayingVideo === videoElement) { 
+                            videoElement.pause();
+                        }
+                        return; 
+                    } 
+                    if (videoElement.paused) { if (currentPlayingVideo === videoElement || !currentPlayingVideo || currentPlayingVideo.paused) { handleVideoPlay(videoElement, segment); } } else { videoElement.pause(); } 
+                });
+                centerPlayButton.addEventListener('click', (e) => { e.stopPropagation(); handleVideoPlay(videoElement, segment); });
+
+                // Video event listeners
+                videoElement.onplay = () => { centerPlayButton.classList.remove('visible'); if (videoElement._progressBarUpdater) videoElement._progressBarUpdater(); };
+                videoElement.onpause = () => { 
+                    centerPlayButton.classList.add('visible'); 
+                    if (segmentLoopListeners.has(videoElement)) { 
+                        videoElement.removeEventListener('timeupdate', segmentLoopListeners.get(videoElement));
+                        segmentLoopListeners.delete(videoElement);
+                    }
+                };
+                videoElement.onvolumechange = () => { muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; };
+                videoElement.onloadedmetadata = () => { 
+                    if (Math.abs(videoElement.currentTime - segment.start) > 0.5) { videoElement.currentTime = segment.start; } 
+                    muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; 
+                    if (videoElement._progressBarUpdater) videoElement._progressBarUpdater();
+                };
+                
+                videoElement.onerror = (event) => {
+                    let errorType = "خطأ غير معروف"; let errorCode = "غير متوفر"; let detailedMessage = "";
+                    if (videoElement.error) { 
+                        errorCode = videoElement.error.code; detailedMessage = videoElement.error.message || "لا توجد رسالة إضافية";
+                        switch (videoElement.error.code) {
+                            case 1: errorType = "تم إحباط تحميل المقطع"; break;
+                            case 2: errorType = "مشكلة في الشبكة"; break;
+                            case 3: errorType = "مشكلة في فك التشفير"; break;
+                            case 4: errorType = "الصيغة غير مدعومة أو CORS"; break;
+                            default: errorType = `رمز خطأ: ${videoElement.error.code}`;
+                        }
+                    } else if (event && event.type === 'error' && !videoElement.src) { errorType = "مصدر الفيديو فارغ";
+                    } else if (event && event.type === 'error') { errorType = "خطأ عام في الفيديو"; }
+                    console.error(`خطأ تحميل المقطع ${index} - ${errorType}, رمز: ${errorCode}, رسالة: ${detailedMessage}`, videoElement.error, event);
+                    slide.innerHTML = `<div style="color:white;text-align:center;padding:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"><p style="font-size:1.2em;margin-bottom:10px;">🚧</p><p style="margin-bottom:5px;">عذرًا، لم نتمكن من تحميل هذا المقطع.</p><p style="font-size:0.8em;color:#aaa;">(${errorType})</p></div>`;
+                };
+                
+                // Progress Bar Elements
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.classList.add('progress-bar-container');
+                const progressBarIndicator = document.createElement('div');
+                progressBarIndicator.classList.add('progress-bar-indicator');
+                progressBarContainer.appendChild(progressBarIndicator);
+
+                // Progress Bar Update Function specific to this video and segment
+                const updateProgressBarFn = () => {
+                    if (!videoElement || videoElement.readyState < 2 || !segment ) { 
+                        return;
+                    }
+                    const elapsedInSegment = videoElement.currentTime - segment.start;
+                    if (segment.duration > 0) {
+                        const progressPercentage = (elapsedInSegment / segment.duration) * 100;
+                        progressBarIndicator.style.width = `${Math.max(0, Math.min(100, progressPercentage))}%`;
+                    } else {
+                        progressBarIndicator.style.width = '0%'; 
+                    }
+                };
+                videoElement._progressBarUpdater = updateProgressBarFn; // Store for direct calls
+                videoElement.addEventListener('timeupdate', updateProgressBarFn);
+                videoElement.addEventListener('seeking', updateProgressBarFn); 
+                videoElement.addEventListener('seeked', updateProgressBarFn);
+
+
+                // Append elements to slide
+                controlsContainer.appendChild(toggleUiBtn); controlsContainer.appendChild(aspectRatioButton); controlsContainer.appendChild(muteButton); controlsContainer.appendChild(panSliderContainer);
+                slide.appendChild(videoElement); slide.appendChild(videoInfoDiv); slide.appendChild(controlsContainer); slide.appendChild(centerPlayButton); slide.appendChild(progressBarContainer); 
+                tiktokFeed.appendChild(slide);
+                setupPanSlider(panSliderContainer, videoElement); // Setup pan slider for this video
+            });
+            setupIntersectionObserver(); // Setup observer for all new slides
+        }
+
+        // Function to set up IntersectionObserver for handling video play/pause on scroll
+        function setupIntersectionObserver() {
+            if (intersectionObserver) { intersectionObserver.disconnect(); } 
+            const options = { root: tiktokFeed, rootMargin: '0px', threshold: 0.65 }; // Trigger when 65% of video is visible
+            intersectionObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    const slideElement = entry.target; 
+                    const video = slideElement.querySelector('video'); if (!video) return;
+                    const segmentIndex = parseInt(slideElement.dataset.index, 10); 
+                    const segmentData = videoSegments[segmentIndex]; if (!segmentData) return;
+                    const centerPlayBtn = slideElement.querySelector('.center-play-button'); 
+
+                    if (entry.isIntersecting) {
+                        // Pause previously playing video if it's different from the current one
+                        if (currentPlayingVideo && currentPlayingVideo !== video) { 
+                            currentPlayingVideo.pause(); 
+                        }
+                        currentPlayingVideo = video; // Set current video
+                        // Play if UI is not hidden, or if UI is hidden but video was already playing (not paused by user)
+                        if (!isUiHidden || (isUiHidden && !video.paused && !unlockUiButton.classList.contains('visible'))) {
+                             handleVideoPlay(video, segmentData); 
+                        } else if (video.paused && centerPlayBtn && !centerPlayBtn.classList.contains('visible')) { 
+                             centerPlayBtn.classList.add('visible'); // Show play button if paused in hidden mode
+                        }
+                        if (video._progressBarUpdater) video._progressBarUpdater(); // Update progress for newly visible video
+                    } else {
+                        // Pause video if it's no longer intersecting
+                        if (video === currentPlayingVideo) { video.pause(); } else { video.pause(); } 
+                        
+                        // If UI was hidden and unlock button was visible, hide it when scrolling away
+                        if(isUiHidden && unlockUiButton.classList.contains('visible')) {
+                            unlockUiButton.classList.remove('visible');
+                            firstSwipeUpTime = 0; 
+                        }
+                    }
+                });
+            }, options);
+            // Observe all video slides
+            document.querySelectorAll('.video-slide').forEach(slide => { intersectionObserver.observe(slide); });
+        }
+
+        // Function to format time from seconds to MM:SS
+        function formatTime(totalSeconds) {
+            totalSeconds = Math.floor(totalSeconds); 
+            const minutes = Math.floor(totalSeconds / 60); 
+            const seconds = totalSeconds % 60; 
+            return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+    </script>
+</body>
+</html>
+```
+
+التغيير الرئيسي هو في CSS الخاص بشريط التقدم:
+```css
+.progress-bar-indicator {
+    width: 0%;
+    height: 100%;
+    background-color: white;
+    transition: width 0.1s linear; /* هذا هو السطر الذي يجعل الحركة سلسة */
+}
+```
+لقد أضفت `transition: width 0.1s linear;` إلى `.progress-bar-indicator`. هذا يجعل أي تغيير في عرض الشريط يحدث بشكل تدريجي على مدى 0.1 ثانية، مما يعطي انطباعاً بالحركة السلسة بدلاً من التقطع.
+
+جرب الآن، وأخبرني إذا كانت الحركة تبدو أف
