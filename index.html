@@ -173,14 +173,13 @@
         .video-controls {
             position: absolute;
             bottom: 70px;
+            right: 15px; /* Always on the right */
             z-index: 10;
             display: flex;
             flex-direction: column;
             align-items: center;
             transition: opacity 0.2s ease-in-out;
         }
-        body[dir="ltr"] .video-controls { right: 15px; }
-        body[dir="rtl"] .video-controls { left: 15px; }
 
         .control-button {
             background: rgba(30, 30, 30, 0.6);
@@ -228,6 +227,7 @@
         .video-info {
             position: absolute;
             bottom: 80px; 
+            left: 15px; /* Always on the left */
             color: white;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
             z-index: 10;
@@ -235,8 +235,6 @@
             max-width: calc(100% - 80px);
             transition: opacity 0.2s ease-in-out;
         }
-        body[dir="ltr"] .video-info { left: 15px; }
-        body[dir="rtl"] .video-info { right: 15px; }
 
         .center-play-button {
             position: absolute; top: 50%; left: 50%;
@@ -255,12 +253,11 @@
         #resetButtonContainer { 
             position: fixed;
             top: 15px;
+            left: 15px; /* Always on the left */
             z-index: 1001; 
             display: none; 
             transition: opacity 0.2s ease-in-out;
         }
-        body[dir="ltr"] #resetButtonContainer { left: 15px; }
-        body[dir="rtl"] #resetButtonContainer { right: 15px; }
 
         #resetButton {
             background: rgba(30, 30, 30, 0.5);
@@ -360,7 +357,7 @@
                 status_too_short: "Video is too short to be clipped.",
                 status_error: (msg) => `Error: ${msg}`,
                 status_enter_url: "Please enter a video URL.",
-                clip_info: (index, total, start, end, duration) => `Clip ${index} / ${total}`,
+                clip_info: (index, total) => `Clip ${index} / ${total}`,
                 clip_time_info: (start, end, duration) => `${start} - ${end} (${duration}s)`,
                 fullscreen_enter: "Enter Fullscreen Mode",
                 fullscreen_exit: "Exit Fullscreen Mode",
