@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>صانع مقاطع الفيديو</title>
+    <title>Video Clip Maker | صانع مقاطع الفيديو</title>
     <style>
         body, html {
             margin: 0;
@@ -11,10 +11,13 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #121212; 
             color: #e0e0e0; 
-            overflow: hidden; /* Base overflow hidden */
+            overflow: hidden;
             height: 100%;
             width: 100%;
         }
+
+        body[dir="rtl"] { text-align: right; }
+        body[dir="ltr"] { text-align: left; }
 
         .container {
             display: flex;
@@ -27,14 +30,9 @@
             transition: opacity 0.3s ease-in-out;
         }
         
-        .container.feed-active .input-section {
-            display: none;
-        }
-        .container.feed-active .tiktok-feed {
-            display: block;
-        }
+        .container.feed-active .input-section { display: none; }
+        .container.feed-active .tiktok-feed { display: block; }
 
-        /* --- Styles for UI Hidden Mode --- */
         .container.ui-hidden-mode .video-info,
         .container.ui-hidden-mode .video-controls {
             opacity: 0 !important;
@@ -43,18 +41,15 @@
             transition: opacity 0.2s ease-in-out, visibility 0s linear 0.2s !important;
         }
         .container.ui-hidden-mode .progress-bar-container {
-            opacity: 1 !important; /* Progress bar remains visible */
+            opacity: 1 !important;
             visibility: visible !important;
         }
-
 
         body.global-ui-hidden #resetButtonContainer {
             opacity: 0 !important;
             visibility: hidden !important;
             pointer-events: none !important;
-            transition: opacity 0.2s ease-in-out, visibility 0s linear 0.2s !important;
         }
-
 
         .input-section {
             background-color: #1e1e1e; 
@@ -63,10 +58,30 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.5);
             width: 90%;
             max-width: 400px;
-            text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
+        }
+        body[dir="rtl"] .input-section { text-align: right; }
+        body[dir="ltr"] .input-section { text-align: left; }
+
+        .lang-switcher {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #langToggleButton {
+            background: #2a2a2a;
+            border: 1px solid #383838;
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        #langToggleButton:hover {
+            background-color: #383838;
         }
 
         .input-section h1 {
@@ -75,6 +90,7 @@
             color: #ffffff;
             font-size: 1.7em;
             font-weight: 600;
+            width: 100%;
         }
         
         .input-section p.description {
@@ -82,6 +98,7 @@
             color: #a0a0a0;
             margin-bottom: 20px;
             line-height: 1.5;
+            width: 100%;
         }
 
         #videoUrl {
@@ -94,11 +111,10 @@
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
-            text-align: left;
         }
-        #videoUrl::placeholder {
-            color: #666;
-        }
+        body[dir="rtl"] #videoUrl { text-align: right; }
+        body[dir="ltr"] #videoUrl { text-align: left; }
+        #videoUrl::placeholder { color: #666; }
 
         #processButton {
             padding: 12px 0; 
@@ -112,19 +128,10 @@
             font-weight: bold;
             transition: transform 0.1s ease, box-shadow 0.2s ease;
         }
-        #processButton:hover:not(:disabled) {
-            transform: scale(1.02);
-            box-shadow: 0 4px 15px rgba(255, 0, 122, 0.3);
-        }
-        #processButton:active:not(:disabled) {
-            transform: scale(0.98);
-        }
         #processButton:disabled {
             background: #444;
             color: #888;
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
 
         #status {
@@ -136,11 +143,8 @@
         }
 
         .tiktok-feed {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh; 
+            position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh; 
             overflow-y: scroll;
             scroll-snap-type: y mandatory;
             -webkit-overflow-scrolling: touch;
@@ -148,15 +152,9 @@
             display: none; 
             z-index: 1000;
         }
-        .tiktok-feed.scroll-locked {
-            overflow-y: hidden !important;
-            scroll-snap-type: none !important;
-        }
-
 
         .video-slide {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             scroll-snap-align: start;
             position: relative;
             display: flex;
@@ -166,85 +164,62 @@
         }
 
         .video-slide video {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             object-position: 50% 50%;
         }
-        .video-slide video.aspect-tiktok {
-            object-fit: cover; 
-        }
-        .video-slide video.aspect-original {
-            object-fit: contain; 
-        }
+        .video-slide video.aspect-tiktok { object-fit: cover; }
+        .video-slide video.aspect-original { object-fit: contain; }
 
         .video-controls {
             position: absolute;
             bottom: 70px;
-            right: 15px;
             z-index: 10;
             display: flex;
             flex-direction: column;
             align-items: center;
-            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+            transition: opacity 0.2s ease-in-out;
         }
+        body[dir="ltr"] .video-controls { right: 15px; }
+        body[dir="rtl"] .video-controls { left: 15px; }
+
         .control-button {
             background: rgba(30, 30, 30, 0.6);
             backdrop-filter: blur(3px);
-            border: none;
-            color: white;
+            border: none; color: white;
             border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 48px; height: 48px;
+            display: flex; justify-content: center; align-items: center;
             cursor: pointer;
             margin-bottom: 15px; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             transition: background-color 0.2s, transform 0.1s;
         }
-        .control-button:hover {
-            background: rgba(50, 50, 50, 0.8);
-        }
-        .control-button:active {
-            transform: scale(0.9);
-        }
-        .control-button svg {
-            width: 22px;
-            height: 22px;
-            fill: white;
-        }
+        .control-button:hover { background: rgba(50, 50, 50, 0.8); }
+        .control-button:active { transform: scale(0.9); }
+        .control-button svg { width: 22px; height: 22px; fill: white; }
         
         .pan-slider-container {
-            width: 120px;
-            height: 20px;
-            display: flex;
-            align-items: center;
+            width: 120px; height: 20px;
+            display: flex; align-items: center;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
             transition: opacity 0.3s ease, visibility 0s linear 0s;
             margin-top: 5px;
         }
         .pan-slider-container.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+            opacity: 0; visibility: hidden; pointer-events: none;
         }
         .pan-slider-track {
-            width: 100%;
-            height: 4px;
+            width: 100%; height: 4px;
             background-color: rgba(255, 255, 255, 0.3);
             border-radius: 2px;
             position: relative;
         }
         .pan-slider-thumb {
-            width: 14px;
-            height: 14px;
+            width: 14px; height: 14px;
             background-color: white;
             border-radius: 50%;
-            position: absolute;
-            top: 50%;
+            position: absolute; top: 50%;
             transform: translate(-50%, -50%);
             left: 50%;
             box-shadow: 0 0 5px rgba(0,0,0,0.5);
@@ -253,161 +228,104 @@
         .video-info {
             position: absolute;
             bottom: 80px; 
-            left: 15px;
             color: white;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
             z-index: 10;
             pointer-events: none;
             max-width: calc(100% - 80px);
-            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+            transition: opacity 0.2s ease-in-out;
         }
+        body[dir="ltr"] .video-info { left: 15px; }
+        body[dir="rtl"] .video-info { right: 15px; }
 
         .center-play-button {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.2);
-            border: none;
-            color: white;
+            border: none; color: white;
             border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            display: none; 
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            z-index: 9;
+            width: 70px; height: 70px;
+            display: none; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 9;
             backdrop-filter: blur(2px);
         }
-        .center-play-button.visible {
-            display: flex;
-        }
-        .center-play-button svg {
-            width: 36px;
-            height: 36px;
-            fill: rgba(255,255,255,0.9);
-        }
+        .center-play-button.visible { display: flex; }
+        .center-play-button svg { width: 36px; height: 36px; fill: rgba(255,255,255,0.9); }
 
         #resetButtonContainer { 
             position: fixed;
             top: 15px;
-            left: 15px;
             z-index: 1001; 
             display: none; 
-            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s;
+            transition: opacity 0.2s ease-in-out;
         }
+        body[dir="ltr"] #resetButtonContainer { left: 15px; }
+        body[dir="rtl"] #resetButtonContainer { right: 15px; }
+
         #resetButton {
             background: rgba(30, 30, 30, 0.5);
             backdrop-filter: blur(5px);
-            color: white;
-            border: none;
+            color: white; border: none;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; justify-content: center; align-items: center;
             transition: background-color 0.2s, transform 0.1s;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        #resetButton:hover {
-            background: rgba(50, 50, 50, 0.7);
-        }
-         #resetButton:active {
-            transform: scale(0.9);
-        }
-        #resetButton svg {
-            width: 20px;
-            height: 20px;
-            fill: white;
-        }
-
-        #unlockUiButton {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-80px); 
-            z-index: 2001;
-            background: rgba(40, 40, 40, 0.7);
-            backdrop-filter: blur(8px);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s linear 0.3s; 
-        }
-        #unlockUiButton.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(0);
-            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out, visibility 0s linear 0s;
-        }
-        #unlockUiButton svg {
-            width: 24px; 
-            height: 24px;
-            fill: white;
-        }
+        #resetButton:hover { background: rgba(50, 50, 50, 0.7); }
+        #resetButton:active { transform: scale(0.9); }
+        #resetButton svg { width: 20px; height: 20px; fill: white; }
 
         .progress-bar-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px; 
+            position: absolute; bottom: 0; left: 0;
+            width: 100%; height: 3px; 
             background-color: rgba(100, 100, 100, 0.5); 
             z-index: 11; 
-            transition: opacity 0.2s ease-in-out, visibility 0s linear 0s; 
+            transition: opacity 0.2s ease-in-out; 
         }
 
         .progress-bar-indicator {
-            width: 0%;
-            height: 100%;
+            width: 0%; height: 100%;
             background-color: white;
-            transition: width 0.1s linear; /* Added for smooth progress animation */
+            transition: width 0.1s linear;
         }
 
     </style>
 </head>
-<body>
+<body dir="rtl">
     <div class="container" id="mainContainer">
         <div class="input-section" id="inputSection">
-            <h1>صانع المقاطع</h1>
-            <p class="description">ألصق رابط فيديو MP4 مباشر لتقسيمه إلى مقاطع شيقة بأسلوب تيك توك.</p>
-            <input type="url" id="videoUrl" placeholder="https://example.com/video.mp4" value="https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4">
-            <button id="processButton">إنشاء المقاطع</button>
+            <div class="lang-switcher">
+                <button id="langToggleButton"></button>
+            </div>
+            <h1 id="mainTitle"></h1>
+            <p class="description" id="mainDescription"></p>
+            <input type="url" id="videoUrl" value="https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4">
+            <button id="processButton"></button>
             <p id="status"></p>
         </div>
 
-        <div class="tiktok-feed" id="tiktokFeed">
-            </div>
+        <div class="tiktok-feed" id="tiktokFeed"></div>
     </div>
     <div id="resetButtonContainer">
         <button id="resetButton"></button>
     </div>
     
-    <button id="unlockUiButton"></button>
-
     <script>
+        // --- DOM Elements ---
         const mainContainer = document.getElementById('mainContainer');
         const videoUrlInput = document.getElementById('videoUrl');
         const processButton = document.getElementById('processButton');
         const statusElement = document.getElementById('status');
         const tiktokFeed = document.getElementById('tiktokFeed');
-        const inputSection = document.getElementById('inputSection');
         const resetButtonContainer = document.getElementById('resetButtonContainer');
         const resetButton = document.getElementById('resetButton');
-        const unlockUiButton = document.getElementById('unlockUiButton');
-
+        const langToggleButton = document.getElementById('langToggleButton');
+        const mainTitle = document.getElementById('mainTitle');
+        const mainDescription = document.getElementById('mainDescription');
+        
+        // --- SVG Icons ---
         const playIconSVG = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>`;
         const pauseIconSVG = `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>`;
         const volumeOnIconSVG = `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>`;
@@ -418,22 +336,138 @@
         const enterImmersiveIconSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"></path></svg>`;
         const exitImmersiveIconSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"></path></svg>`;
 
+        // --- State Variables ---
         let currentVideoUrl = '';
         let videoSegments = [];
         let currentPlayingVideo = null;
         let segmentLoopListeners = new Map(); 
         let intersectionObserver = null;
         let isUiHidden = false;
+        let currentLanguage = 'ar';
 
-        let firstSwipeUpTime = 0; 
-        const SWIPE_UP_THRESHOLD = -70; 
-        const SWIPE_X_THRESHOLD = 50;
-        const DOUBLE_SWIPE_INTERVAL = 700;
-        let touchStartY = 0;
-        let touchStartX = 0;
-        let touchStartTime = 0;
+        // --- Localization ---
+        const translations = {
+            en: {
+                lang_toggle: "العربية",
+                title: "Video Clip Maker",
+                description: "Paste a direct MP4 video link to split it into interesting, TikTok-style clips.",
+                placeholder: "https://example.com/video.mp4",
+                process_button: "Create Clips",
+                status_loading: "Loading video metadata...",
+                status_fail_load: "Failed to load video. Check the link and CORS permissions.",
+                status_duration: (time) => `Video duration: ${time}. Generating clips...`,
+                status_generated: (count) => `${count} clips generated. Displaying feed...`,
+                status_too_short: "Video is too short to be clipped.",
+                status_error: (msg) => `Error: ${msg}`,
+                status_enter_url: "Please enter a video URL.",
+                clip_info: (index, total, start, end, duration) => `Clip ${index} / ${total}`,
+                clip_time_info: (start, end, duration) => `${start} - ${end} (${duration}s)`,
+                fullscreen_enter: "Enter Fullscreen Mode",
+                fullscreen_exit: "Exit Fullscreen Mode",
+                aspect_ratio_toggle: "Toggle aspect ratio (9:16 / Original)",
+                mute_toggle: "Mute/Unmute",
+                pan_video: "Pan video horizontally",
+                error_clip_load: "Oops, couldn't load this clip.",
+                error_type: (type) => `(${type})`,
+                error_aborted: "Clip loading aborted",
+                error_network: "Network problem",
+                error_decode: "Decoding problem",
+                error_unsupported: "Format not supported or CORS issue",
+                error_code: (code) => `Error code: ${code}`
+            },
+            ar: {
+                lang_toggle: "English",
+                title: "صانع المقاطع",
+                description: "ألصق رابط فيديو MP4 مباشر لتقسيمه إلى مقاطع شيقة بأسلوب تيك توك.",
+                placeholder: "https://example.com/video.mp4",
+                process_button: "إنشاء المقاطع",
+                status_loading: "جاري تحميل بيانات الفيديو...",
+                status_fail_load: "فشل تحميل الفيديو. تحقق من الرابط وصلاحيات CORS.",
+                status_duration: (time) => `مدة الفيديو: ${time}. جاري توليد المقاطع...`,
+                status_generated: (count) => `تم توليد ${count} مقاطع. جاري عرضها...`,
+                status_too_short: "الفيديو قصير جدًا للتقسيم.",
+                status_error: (msg) => `خطأ: ${msg}`,
+                status_enter_url: "الرجاء إدخال رابط الفيديو.",
+                clip_info: (index, total) => `مقطع ${index} / ${total}`,
+                clip_time_info: (start, end, duration) => `${start} - ${end} (${duration} ث)`,
+                fullscreen_enter: "الدخول في وضع ملء الشاشة",
+                fullscreen_exit: "الخروج من وضع ملء الشاشة",
+                aspect_ratio_toggle: "تبديل نسبة العرض (9:16 / أصلي)",
+                mute_toggle: "كتم/إلغاء كتم الصوت",
+                pan_video: "تحريك الفيديو أفقياً",
+                error_clip_load: "عذرًا، لم نتمكن من تحميل هذا المقطع.",
+                error_type: (type) => `(${type})`,
+                error_aborted: "تم إحباط تحميل المقطع",
+                error_network: "مشكلة في الشبكة",
+                error_decode: "مشكلة في فك التشفير",
+                error_unsupported: "الصيغة غير مدعومة أو CORS",
+                error_code: (code) => `رمز خطأ: ${code}`
+            }
+        };
 
-        // Function to shuffle an array
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            const t = translations[lang];
+            
+            document.documentElement.lang = lang;
+            document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+            langToggleButton.textContent = t.lang_toggle;
+            mainTitle.textContent = t.title;
+            mainDescription.textContent = t.description;
+            videoUrlInput.placeholder = t.placeholder;
+            processButton.textContent = t.process_button;
+        }
+
+        langToggleButton.addEventListener('click', () => {
+            const newLang = currentLanguage === 'en' ? 'ar' : 'en';
+            setLanguage(newLang);
+        });
+
+        // --- Fullscreen API ---
+        function isFullScreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+        function toggleBrowserFullScreen() {
+            if (!isFullScreen()) {
+                document.documentElement.requestFullscreen().catch(err => console.error(err));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        function handleFullscreenChange() {
+            const fullscreenButtons = document.querySelectorAll('.fullscreen-toggle-button');
+            const t = translations[currentLanguage];
+            if (isFullScreen()) {
+                hideAllUi();
+                fullscreenButtons.forEach(btn => {
+                    btn.innerHTML = exitImmersiveIconSVG;
+                    btn.title = t.fullscreen_exit;
+                });
+            } else {
+                showAllUi();
+                fullscreenButtons.forEach(btn => {
+                    btn.innerHTML = enterImmersiveIconSVG;
+                    btn.title = t.fullscreen_enter;
+                });
+            }
+        }
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        // --- UI State Functions ---
+        function hideAllUi() {
+            if (isUiHidden) return;
+            document.body.classList.add('global-ui-hidden');
+            mainContainer.classList.add('ui-hidden-mode');
+            isUiHidden = true;
+        }
+        function showAllUi() {
+            if (!isUiHidden) return;
+            document.body.classList.remove('global-ui-hidden');
+            mainContainer.classList.remove('ui-hidden-mode');
+            isUiHidden = false;
+        }
+        
+        // --- Core Logic ---
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -441,229 +475,104 @@
             }
         }
 
-        // Function to hide all UI elements for immersive mode
-        function hideAllUi() {
-            if (isUiHidden) return;
-            document.body.classList.add('global-ui-hidden');
-            mainContainer.classList.add('ui-hidden-mode');
-            tiktokFeed.classList.add('scroll-locked');
-            unlockUiButton.classList.remove('visible'); 
-            isUiHidden = true;
-            firstSwipeUpTime = 0; 
-        }
-
-        // Function to show all UI elements
-        function showAllUi() {
-            if (!isUiHidden) return;
-            document.body.classList.remove('global-ui-hidden');
-            mainContainer.classList.remove('ui-hidden-mode');
-            tiktokFeed.classList.remove('scroll-locked');
-            unlockUiButton.classList.remove('visible'); 
-            isUiHidden = false;
-        }
-        
-        // Function to reveal the unlock UI button
-        function revealUnlockButton() {
-            if (!isUiHidden || unlockUiButton.classList.contains('visible')) return;
-            unlockUiButton.innerHTML = exitImmersiveIconSVG; 
-            unlockUiButton.classList.add('visible');
-        }
-
-        // Event listener for the unlock UI button
-        unlockUiButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showAllUi();
-        });
-
-        // Touch event handlers for swipe gesture to reveal unlock button
-        function handleFeedTouchStart(e) {
-            if (!isUiHidden || unlockUiButton.classList.contains('visible')) {
-                 touchStartY = 0; 
-                 return;
-            }
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            touchStartTime = Date.now();
-        }
-
-        function handleFeedTouchEnd(e) {
-            if (!isUiHidden || touchStartY === 0 || unlockUiButton.classList.contains('visible')) return;
-
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const touchEndTime = Date.now();
-
-            const deltaX = Math.abs(touchEndX - touchStartX);
-            const deltaY = touchEndY - touchStartY; 
-            const deltaTime = touchEndTime - touchStartTime;
-
-            if (deltaY < SWIPE_UP_THRESHOLD && deltaX < SWIPE_X_THRESHOLD && deltaTime < 500) { 
-                const now = Date.now();
-                if (now - firstSwipeUpTime < DOUBLE_SWIPE_INTERVAL) {
-                    revealUnlockButton(); 
-                    firstSwipeUpTime = 0; 
-                } else {
-                    firstSwipeUpTime = now;
-                }
-            } else {
-                if (!(deltaY < SWIPE_UP_THRESHOLD && deltaX < SWIPE_X_THRESHOLD)) {
-                    firstSwipeUpTime = 0; 
-                }
-            }
-            touchStartY = 0;
-            touchStartX = 0;
-        }
-
-        tiktokFeed.addEventListener('touchstart', handleFeedTouchStart, { passive: true });
-        tiktokFeed.addEventListener('touchend', handleFeedTouchEnd, { passive: true });
-
-        // Event listener for the process video button
         processButton.addEventListener('click', async () => {
             const url = videoUrlInput.value.trim();
+            const t = translations[currentLanguage];
             if (!url) {
-                statusElement.textContent = 'الرجاء إدخال رابط الفيديو.';
+                statusElement.textContent = t.status_enter_url;
                 return;
             }
             currentVideoUrl = url;
-            statusElement.textContent = 'جاري تحميل بيانات الفيديو...';
+            statusElement.textContent = t.status_loading;
             processButton.disabled = true;
             videoUrlInput.disabled = true;
 
             try {
-                // Get video duration
                 const videoDuration = await getVideoDuration(url);
-                if (videoDuration === null || isNaN(videoDuration) || !isFinite(videoDuration)) {
-                    statusElement.textContent = 'فشل تحميل الفيديو. تحقق من الرابط وصلاحيات CORS.';
-                    resetInputUi();
-                    return;
-                }
-
-                statusElement.textContent = `مدة الفيديو: ${formatTime(videoDuration)}. جاري توليد المقاطع...`;
+                statusElement.textContent = t.status_duration(formatTime(videoDuration));
                 
-                // Determine number of clips to generate
                 const maxClips = 20;
-                const avgClipDurationTarget = 15; // seconds
-                let numClipsToGenerate = Math.floor(videoDuration / avgClipDurationTarget);
-                numClipsToGenerate = Math.min(maxClips, Math.max(1, numClipsToGenerate)); // Ensure between 1 and maxClips
+                const avgClipDurationTarget = 15;
+                let numClipsToGenerate = Math.min(maxClips, Math.max(1, Math.floor(videoDuration / avgClipDurationTarget)));
                                 
-                // Generate video segments
-                videoSegments = generateSegments(videoDuration, numClipsToGenerate, 7, 25); // min 7s, max 25s clips
+                videoSegments = generateSegments(videoDuration, numClipsToGenerate, 7, 25);
                 shuffleArray(videoSegments); 
 
                 if (videoSegments.length === 0) {
-                    statusElement.textContent = 'الفيديو قصير جدًا للتقسيم.';
+                    statusElement.textContent = t.status_too_short;
                     resetInputUi();
                     return;
                 }
 
-                statusElement.textContent = `تم توليد ${videoSegments.length} مقاطع. جاري عرضها...`;
+                statusElement.textContent = t.status_generated(videoSegments.length);
                 
-                // Switch to feed view
                 mainContainer.classList.add('feed-active');
-                resetButtonContainer.style.display = 'block'; // Show reset button
+                resetButtonContainer.style.display = 'block';
                 resetButton.innerHTML = backIconSVG;
-                showAllUi(); // Ensure UI is normal when starting
-
-                // Display video segments in the feed
+                showAllUi();
                 displayVideoSegments();
-                tiktokFeed.scrollTop = 0; // Scroll to the top of the feed
+                tiktokFeed.scrollTop = 0;
 
             } catch (error) {
                 console.error("Error processing video:", error);
-                statusElement.textContent = 'خطأ: ' + error.message;
+                statusElement.textContent = t.status_error(error.message);
                 resetInputUi();
             }
         });
         
-        // Function to reset the input UI state
         function resetInputUi() {
             processButton.disabled = false;
             videoUrlInput.disabled = false;
         }
 
-        // Event listener for the reset button
         resetButton.addEventListener('click', () => {
+            if (isFullScreen()) toggleBrowserFullScreen();
+            showAllUi();
             mainContainer.classList.remove('feed-active');
-            resetButtonContainer.style.display = 'none'; // Hide reset button
-            showAllUi(); 
+            resetButtonContainer.style.display = 'none'; 
             
-            // Disconnect IntersectionObserver
             if (intersectionObserver) {
-                document.querySelectorAll('.video-slide').forEach(slide => intersectionObserver.unobserve(slide));
+                intersectionObserver.disconnect();
                 intersectionObserver = null; 
             }
             
-            // Clean up progress bar listeners and reset bars
-            tiktokFeed.querySelectorAll('video').forEach(vid => {
-                if (vid._progressBarUpdater) {
-                    vid.removeEventListener('timeupdate', vid._progressBarUpdater);
-                    vid.removeEventListener('loadeddata', vid._progressBarUpdater); // Also remove if added here
-                    vid.removeEventListener('seeking', vid._progressBarUpdater);
-                    vid.removeEventListener('seeked', vid._progressBarUpdater);
-                    delete vid._progressBarUpdater;
-                }
-                const barIndicator = vid.closest('.video-slide')?.querySelector('.progress-bar-indicator');
-                if (barIndicator) barIndicator.style.width = '0%';
-            });
-
-            tiktokFeed.innerHTML = ''; // Clear the feed
-            
+            tiktokFeed.innerHTML = '';
             statusElement.textContent = '';
             resetInputUi();
 
-            // Stop and clean up current playing video and listeners
             if (currentPlayingVideo) {
                 currentPlayingVideo.pause();
-                if (segmentLoopListeners.has(currentPlayingVideo)) { 
-                    currentPlayingVideo.removeEventListener('timeupdate', segmentLoopListeners.get(currentPlayingVideo));
-                    segmentLoopListeners.delete(currentPlayingVideo);
-                }
                 currentPlayingVideo = null;
             }
             segmentLoopListeners.forEach((listener, video) => video.removeEventListener('timeupdate', listener));
             segmentLoopListeners.clear();
         });
 
-        // Function to get video duration
         function getVideoDuration(url) {
             return new Promise((resolve, reject) => {
                 const tempVideo = document.createElement('video');
                 tempVideo.preload = 'metadata';
                 tempVideo.src = url;
-                // Event listener for when metadata is loaded
+                const t = translations[currentLanguage];
+
                 const onMetadataLoaded = () => { 
                     if (tempVideo.duration && isFinite(tempVideo.duration)) {
                         resolve(tempVideo.duration);
                     } else {
-                        reject(new Error("لم يتمكن من الحصول على مدة فيديو صالحة."));
+                        reject(new Error("Could not get a valid video duration."));
                     }
                     cleanup(); 
                 };
-                // Event listener for errors loading the video
                 const errorHandler = (e) => { 
-                    let errorMsg = "خطأ في تحميل الفيديو.";
-                    if (tempVideo.error) {
-                        switch (tempVideo.error.code) {
-                            case 1: errorMsg = "تم إحباط جلب الفيديو."; break;
-                            case 2: errorMsg = "خطأ في الشبكة."; break;
-                            case 3: errorMsg = "خطأ في فك التشفير."; break;
-                            case 4: errorMsg = "مصدر الفيديو غير مدعوم أو مشكلة CORS."; break;
-                            default: errorMsg = `حدث خطأ غير معروف (${tempVideo.error.code}) أثناء تحميل الفيديو.`;
-                        }
-                    } else {
-                        errorMsg = "حدث خطأ غير معروف أثناء محاولة تحميل بيانات الفيديو."
-                    }
-                    reject(new Error(errorMsg)); 
+                    reject(new Error(t.status_fail_load)); 
                     cleanup(); 
                 };
-                // Timeout for loading metadata
                 const timeoutId = setTimeout(() => { 
-                    reject(new Error("انتهت مهلة تحميل بيانات الفيديو (CORS أو رابط غير صالح).")); 
+                    reject(new Error(t.status_fail_load)); 
                     cleanup();
-                    tempVideo.src = ""; // Attempt to stop further loading
-                }, 20000); // 20 seconds timeout
+                    tempVideo.src = "";
+                }, 20000);
 
-                // Cleanup function to remove event listeners and clear timeout
                 function cleanup() {
                     clearTimeout(timeoutId);
                     tempVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
@@ -675,75 +584,40 @@
             });
         }
 
-        // Function to generate random video segments
-        function generateSegments(totalDuration, numSegments, minClipDuration, maxClipDuration) {
+        function generateSegments(totalDuration, numSegments, minClip, maxClip) {
             const segments = [];
-            if (totalDuration < minClipDuration) return segments; // Not enough duration for any clip
-
+            if (totalDuration < minClip) return segments;
             for (let i = 0; i < numSegments; i++) {
-                let effectiveMaxDuration = Math.min(maxClipDuration, totalDuration);
-                if (minClipDuration > effectiveMaxDuration) continue; // Skip if min is greater than what's possible
-
-                let clipDuration = Math.random() * (effectiveMaxDuration - minClipDuration) + minClipDuration;
-                clipDuration = Math.min(clipDuration, totalDuration); // Ensure clip doesn't exceed total duration
-                if (clipDuration <= 0) continue; // Skip if duration is invalid
-
-                let startTime = Math.random() * (totalDuration - clipDuration);
-                startTime = Math.max(0, startTime); // Ensure startTime is not negative
-                segments.push({ start: startTime, duration: clipDuration });
+                let duration = Math.random() * (maxClip - minClip) + minClip;
+                let start = Math.random() * (totalDuration - duration);
+                segments.push({ start: start, duration: duration });
             }
             return segments;
         }
         
-        // Function to handle playing a video segment
         function handleVideoPlay(video, segmentData) {
             if (!video || !segmentData) return;
-
-            // Remove any existing loop listener for this video
             if (segmentLoopListeners.has(video)) {
                 video.removeEventListener('timeupdate', segmentLoopListeners.get(video));
-                segmentLoopListeners.delete(video);
             }
-
-            // Set current time if it's significantly off or outside the segment
             if (Math.abs(video.currentTime - segmentData.start) > 0.5 || video.currentTime < segmentData.start || video.currentTime > segmentData.start + segmentData.duration) {
                 video.currentTime = segmentData.start;
             }
-            
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    // Add a new loop listener
-                    const loopFunction = () => {
-                        if (video.currentTime >= segmentData.start + segmentData.duration - 0.15) { // Loop slightly before exact end
-                            video.currentTime = segmentData.start; // Loop back to start
-                        }
-                    };
-                    video.addEventListener('timeupdate', loopFunction);
-                    segmentLoopListeners.set(video, loopFunction);
-
-                    // Ensure progress bar updater is active and updates on play
-                    if (video._progressBarUpdater) {
-                        video._progressBarUpdater(); 
+            video.play().then(() => {
+                const loopFunction = () => {
+                    if (video.currentTime >= segmentData.start + segmentData.duration - 0.15) {
+                        video.currentTime = segmentData.start;
                     }
-
-                }).catch(error => {
-                    if (error.name !== 'AbortError') { // Ignore AbortError which can happen if play is interrupted
-                        console.warn("Play interrupted or failed for segment:", segmentData, error); 
-                    }
-                    video.pause(); 
-                    const centerPlayBtn = video.closest('.video-slide')?.querySelector('.center-play-button');
-                    if (centerPlayBtn) centerPlayBtn.classList.add('visible');
-                    // Clean up listener if play failed
-                    if (segmentLoopListeners.has(video)) {
-                        video.removeEventListener('timeupdate', segmentLoopListeners.get(video));
-                        segmentLoopListeners.delete(video);
-                    }
-                });
-            }
+                };
+                video.addEventListener('timeupdate', loopFunction);
+                segmentLoopListeners.set(video, loopFunction);
+                if (video._progressBarUpdater) video._progressBarUpdater(); 
+            }).catch(error => {
+                if (error.name !== 'AbortError') console.warn("Play failed:", segmentData, error); 
+                video.pause();
+            });
         }
         
-        // Function to set up the pan slider for a video
         function setupPanSlider(sliderContainer, videoElement) {
             const thumb = sliderContainer.querySelector('.pan-slider-thumb'); 
             const track = sliderContainer.querySelector('.pan-slider-track'); 
@@ -757,12 +631,10 @@
                 thumb.style.left = `${percentage}%`; 
                 videoElement.style.objectPosition = `${percentage}% 50%`; 
             };
-            // Mouse events
-            const onMouseDown = (e) => { e.stopPropagation(); isPanning = true; sliderContainer.style.cursor = 'grabbing'; handlePan(e.clientX); document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
+            const onMouseDown = (e) => { e.stopPropagation(); isPanning = true; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
             const onMouseMove = (e) => { if (isPanning) handlePan(e.clientX); }; 
-            const onMouseUp = () => { isPanning = false; sliderContainer.style.cursor = 'pointer'; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
-            // Touch events
-            const onTouchStart = (e) => { e.stopPropagation(); isPanning = true; handlePan(e.touches[0].clientX); document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); };
+            const onMouseUp = () => { isPanning = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            const onTouchStart = (e) => { e.stopPropagation(); isPanning = true; document.addEventListener('touchmove', onTouchMove, { passive: false }); document.addEventListener('touchend', onTouchEnd); };
             const onTouchMove = (e) => { if (isPanning) { e.preventDefault(); handlePan(e.touches[0].clientX); }}; 
             const onTouchEnd = () => { isPanning = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); };
             
@@ -770,186 +642,115 @@
             sliderContainer.addEventListener('touchstart', onTouchStart, { passive: true });
         }
 
-        // Function to display video segments in the feed
         function displayVideoSegments() {
-            tiktokFeed.innerHTML = ''; // Clear previous segments
+            tiktokFeed.innerHTML = '';
+            const t = translations[currentLanguage];
+
             videoSegments.forEach((segment, index) => {
-                const slide = document.createElement('div'); slide.classList.add('video-slide'); slide.setAttribute('data-index', index);
+                const slide = document.createElement('div'); slide.className = 'video-slide'; slide.dataset.index = index;
                 const videoElement = document.createElement('video'); 
                 videoElement.src = currentVideoUrl + '#t=' + segment.start.toFixed(2); 
                 videoElement.preload = 'metadata'; 
-                videoElement.muted = index !== 0; // Mute all but the first video initially
-                videoElement.loop = false; // Looping is handled by segmentLoopListeners
+                videoElement.muted = index !== 0;
                 videoElement.playsInline = true; 
-                videoElement.classList.add('aspect-original'); // Default aspect ratio
+                videoElement.className = 'aspect-original';
 
-                // Video info display
-                const videoInfoDiv = document.createElement('div'); videoInfoDiv.classList.add('video-info'); 
-                videoInfoDiv.innerHTML = `<div class="segment-number">مقطع ${index + 1} / ${videoSegments.length}</div><div class="segment-time">${formatTime(segment.start)} - ${formatTime(segment.start + segment.duration)} (${Math.round(segment.duration)} ث)</div>`;
+                const videoInfoDiv = document.createElement('div'); videoInfoDiv.className = 'video-info'; 
+                videoInfoDiv.innerHTML = `
+                    <div class="segment-number">${t.clip_info(index + 1, videoSegments.length)}</div>
+                    <div class="segment-time">${t.clip_time_info(formatTime(segment.start), formatTime(segment.start + segment.duration), Math.round(segment.duration))}</div>`;
                 
-                // Controls container
-                const controlsContainer = document.createElement('div'); controlsContainer.classList.add('video-controls');
-                const panSliderContainer = document.createElement('div'); panSliderContainer.classList.add('pan-slider-container', 'hidden'); panSliderContainer.title = 'تحريك الفيديو أفقياً'; panSliderContainer.innerHTML = `<div class="pan-slider-track"><div class="pan-slider-thumb"></div></div>`;
+                const controlsContainer = document.createElement('div'); controlsContainer.className = 'video-controls';
+                const panSliderContainer = document.createElement('div'); panSliderContainer.className = 'pan-slider-container hidden'; panSliderContainer.title = t.pan_video; panSliderContainer.innerHTML = `<div class="pan-slider-track"><div class="pan-slider-thumb"></div></div>`;
                 
-                // UI Toggle Button
-                const toggleUiBtn = document.createElement('button'); toggleUiBtn.classList.add('control-button', 'toggle-ui-button'); toggleUiBtn.innerHTML = enterImmersiveIconSVG; toggleUiBtn.title = "إخفاء الواجهة (وضع التركيز)";
-                toggleUiBtn.addEventListener('click', (e) => { e.stopPropagation(); if (isUiHidden) { showAllUi(); } else { hideAllUi(); } });
+                const fullscreenBtn = document.createElement('button');
+                fullscreenBtn.className = 'control-button fullscreen-toggle-button';
+                fullscreenBtn.innerHTML = isFullScreen() ? exitImmersiveIconSVG : enterImmersiveIconSVG;
+                fullscreenBtn.title = isFullScreen() ? t.fullscreen_exit : t.fullscreen_enter;
+                fullscreenBtn.onclick = (e) => { e.stopPropagation(); toggleBrowserFullScreen(); };
 
-                // Aspect Ratio Button
-                const aspectRatioButton = document.createElement('button'); aspectRatioButton.classList.add('control-button', 'aspect-ratio-button'); aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG; aspectRatioButton.title = "تبديل نسبة العرض (9:16 / أصلي)";
-                aspectRatioButton.addEventListener('click', (e) => { e.stopPropagation(); if (videoElement.classList.contains('aspect-original')) { videoElement.classList.remove('aspect-original'); videoElement.classList.add('aspect-tiktok'); aspectRatioButton.innerHTML = aspectRatioOriginalIconSVG; panSliderContainer.classList.remove('hidden'); } else { videoElement.classList.remove('aspect-tiktok'); videoElement.classList.add('aspect-original'); aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG; panSliderContainer.classList.add('hidden'); } });
+                const aspectRatioButton = document.createElement('button');
+                aspectRatioButton.className = 'control-button aspect-ratio-button';
+                aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG;
+                aspectRatioButton.title = t.aspect_ratio_toggle;
+                aspectRatioButton.onclick = (e) => { e.stopPropagation(); if (videoElement.classList.contains('aspect-original')) { videoElement.classList.replace('aspect-original', 'aspect-tiktok'); aspectRatioButton.innerHTML = aspectRatioOriginalIconSVG; panSliderContainer.classList.remove('hidden'); } else { videoElement.classList.replace('aspect-tiktok', 'aspect-original'); aspectRatioButton.innerHTML = aspectRatioTikTokIconSVG; panSliderContainer.classList.add('hidden'); } };
                 
-                // Mute Button
-                const muteButton = document.createElement('button'); muteButton.classList.add('control-button', 'mute-toggle-button'); muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; muteButton.title = "كتم/إلغاء كتم الصوت";
-                muteButton.addEventListener('click', (e) => { e.stopPropagation(); videoElement.muted = !videoElement.muted; });
+                const muteButton = document.createElement('button');
+                muteButton.className = 'control-button mute-toggle-button';
+                muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG;
+                muteButton.title = t.mute_toggle;
+                muteButton.onclick = (e) => { e.stopPropagation(); videoElement.muted = !videoElement.muted; };
 
-                // Center Play/Pause Button (overlay)
-                const centerPlayButton = document.createElement('button'); centerPlayButton.classList.add('center-play-button'); centerPlayButton.innerHTML = playIconSVG; 
+                const centerPlayButton = document.createElement('button');
+                centerPlayButton.className = 'center-play-button';
+                centerPlayButton.innerHTML = playIconSVG; 
                 
-                // Click on slide to play/pause
-                slide.addEventListener('click', (e) => { 
-                    if (isUiHidden) { 
-                        if (videoElement.paused && currentPlayingVideo === videoElement) {
-                             handleVideoPlay(videoElement, segment);
-                        } else if (currentPlayingVideo === videoElement) { 
-                            videoElement.pause();
-                        }
-                        return; 
-                    } 
-                    if (videoElement.paused) { if (currentPlayingVideo === videoElement || !currentPlayingVideo || currentPlayingVideo.paused) { handleVideoPlay(videoElement, segment); } } else { videoElement.pause(); } 
-                });
-                centerPlayButton.addEventListener('click', (e) => { e.stopPropagation(); handleVideoPlay(videoElement, segment); });
+                slide.onclick = () => { videoElement.paused ? handleVideoPlay(videoElement, segment) : videoElement.pause(); };
+                centerPlayButton.onclick = (e) => { e.stopPropagation(); handleVideoPlay(videoElement, segment); };
 
-                // Video event listeners
-                videoElement.onplay = () => { centerPlayButton.classList.remove('visible'); if (videoElement._progressBarUpdater) videoElement._progressBarUpdater(); };
-                videoElement.onpause = () => { 
-                    centerPlayButton.classList.add('visible'); 
-                    if (segmentLoopListeners.has(videoElement)) { 
-                        videoElement.removeEventListener('timeupdate', segmentLoopListeners.get(videoElement));
-                        segmentLoopListeners.delete(videoElement);
-                    }
-                };
+                videoElement.onplay = () => centerPlayButton.classList.remove('visible');
+                videoElement.onpause = () => centerPlayButton.classList.add('visible');
                 videoElement.onvolumechange = () => { muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; };
-                videoElement.onloadedmetadata = () => { 
-                    if (Math.abs(videoElement.currentTime - segment.start) > 0.5) { videoElement.currentTime = segment.start; } 
-                    muteButton.innerHTML = videoElement.muted ? volumeOffIconSVG : volumeOnIconSVG; 
-                    if (videoElement._progressBarUpdater) videoElement._progressBarUpdater();
-                };
                 
-                videoElement.onerror = (event) => {
-                    let errorType = "خطأ غير معروف"; let errorCode = "غير متوفر"; let detailedMessage = "";
-                    if (videoElement.error) { 
-                        errorCode = videoElement.error.code; detailedMessage = videoElement.error.message || "لا توجد رسالة إضافية";
+                videoElement.onerror = () => {
+                    let errorKey = "error_unsupported";
+                    if(videoElement.error) {
                         switch (videoElement.error.code) {
-                            case 1: errorType = "تم إحباط تحميل المقطع"; break;
-                            case 2: errorType = "مشكلة في الشبكة"; break;
-                            case 3: errorType = "مشكلة في فك التشفير"; break;
-                            case 4: errorType = "الصيغة غير مدعومة أو CORS"; break;
-                            default: errorType = `رمز خطأ: ${videoElement.error.code}`;
+                            case 1: errorKey = "error_aborted"; break;
+                            case 2: errorKey = "error_network"; break;
+                            case 3: errorKey = "error_decode"; break;
                         }
-                    } else if (event && event.type === 'error' && !videoElement.src) { errorType = "مصدر الفيديو فارغ";
-                    } else if (event && event.type === 'error') { errorType = "خطأ عام في الفيديو"; }
-                    console.error(`خطأ تحميل المقطع ${index} - ${errorType}, رمز: ${errorCode}, رسالة: ${detailedMessage}`, videoElement.error, event);
-                    slide.innerHTML = `<div style="color:white;text-align:center;padding:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"><p style="font-size:1.2em;margin-bottom:10px;">🚧</p><p style="margin-bottom:5px;">عذرًا، لم نتمكن من تحميل هذا المقطع.</p><p style="font-size:0.8em;color:#aaa;">(${errorType})</p></div>`;
+                    }
+                    slide.innerHTML = `<div style="color:white;text-align:center;padding:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;"><p style="font-size:1.2em;margin-bottom:10px;">🚧</p><p>${t.error_clip_load}</p><p style="font-size:0.8em;color:#aaa;">${t.error_type(t[errorKey])}</p></div>`;
                 };
                 
-                // Progress Bar Elements
-                const progressBarContainer = document.createElement('div');
-                progressBarContainer.classList.add('progress-bar-container');
-                const progressBarIndicator = document.createElement('div');
-                progressBarIndicator.classList.add('progress-bar-indicator');
+                const progressBarContainer = document.createElement('div'); progressBarContainer.className = 'progress-bar-container';
+                const progressBarIndicator = document.createElement('div'); progressBarIndicator.className = 'progress-bar-indicator';
                 progressBarContainer.appendChild(progressBarIndicator);
 
-                // Progress Bar Update Function specific to this video and segment
                 const updateProgressBarFn = () => {
-                    if (!videoElement || videoElement.readyState < 2 || !segment ) { 
-                        return;
-                    }
-                    const elapsedInSegment = videoElement.currentTime - segment.start;
-                    if (segment.duration > 0) {
-                        const progressPercentage = (elapsedInSegment / segment.duration) * 100;
-                        progressBarIndicator.style.width = `${Math.max(0, Math.min(100, progressPercentage))}%`;
-                    } else {
-                        progressBarIndicator.style.width = '0%'; 
-                    }
+                    if (!videoElement.readyState || !segment.duration) return;
+                    const progress = ((videoElement.currentTime - segment.start) / segment.duration) * 100;
+                    progressBarIndicator.style.width = `${Math.max(0, Math.min(100, progress))}%`;
                 };
-                videoElement._progressBarUpdater = updateProgressBarFn; // Store for direct calls
+                videoElement._progressBarUpdater = updateProgressBarFn;
                 videoElement.addEventListener('timeupdate', updateProgressBarFn);
-                videoElement.addEventListener('seeking', updateProgressBarFn); 
-                videoElement.addEventListener('seeked', updateProgressBarFn);
-
-
-                // Append elements to slide
-                controlsContainer.appendChild(toggleUiBtn); controlsContainer.appendChild(aspectRatioButton); controlsContainer.appendChild(muteButton); controlsContainer.appendChild(panSliderContainer);
-                slide.appendChild(videoElement); slide.appendChild(videoInfoDiv); slide.appendChild(controlsContainer); slide.appendChild(centerPlayButton); slide.appendChild(progressBarContainer); 
+                
+                controlsContainer.append(fullscreenBtn, aspectRatioButton, muteButton, panSliderContainer);
+                slide.append(videoElement, videoInfoDiv, controlsContainer, centerPlayButton, progressBarContainer); 
                 tiktokFeed.appendChild(slide);
-                setupPanSlider(panSliderContainer, videoElement); // Setup pan slider for this video
+                setupPanSlider(panSliderContainer, videoElement);
             });
-            setupIntersectionObserver(); // Setup observer for all new slides
+            setupIntersectionObserver();
         }
 
-        // Function to set up IntersectionObserver for handling video play/pause on scroll
         function setupIntersectionObserver() {
-            if (intersectionObserver) { intersectionObserver.disconnect(); } 
-            const options = { root: tiktokFeed, rootMargin: '0px', threshold: 0.65 }; // Trigger when 65% of video is visible
-            intersectionObserver = new IntersectionObserver((entries, observer) => {
+            if (intersectionObserver) intersectionObserver.disconnect(); 
+            intersectionObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    const slideElement = entry.target; 
-                    const video = slideElement.querySelector('video'); if (!video) return;
-                    const segmentIndex = parseInt(slideElement.dataset.index, 10); 
-                    const segmentData = videoSegments[segmentIndex]; if (!segmentData) return;
-                    const centerPlayBtn = slideElement.querySelector('.center-play-button'); 
-
+                    const video = entry.target.querySelector('video'); if (!video) return;
                     if (entry.isIntersecting) {
-                        // Pause previously playing video if it's different from the current one
-                        if (currentPlayingVideo && currentPlayingVideo !== video) { 
-                            currentPlayingVideo.pause(); 
-                        }
-                        currentPlayingVideo = video; // Set current video
-                        // Play if UI is not hidden, or if UI is hidden but video was already playing (not paused by user)
-                        if (!isUiHidden || (isUiHidden && !video.paused && !unlockUiButton.classList.contains('visible'))) {
-                             handleVideoPlay(video, segmentData); 
-                        } else if (video.paused && centerPlayBtn && !centerPlayBtn.classList.contains('visible')) { 
-                             centerPlayBtn.classList.add('visible'); // Show play button if paused in hidden mode
-                        }
-                        if (video._progressBarUpdater) video._progressBarUpdater(); // Update progress for newly visible video
+                        if (currentPlayingVideo && currentPlayingVideo !== video) currentPlayingVideo.pause(); 
+                        currentPlayingVideo = video;
+                        const segment = videoSegments[entry.target.dataset.index];
+                        handleVideoPlay(video, segment);
                     } else {
-                        // Pause video if it's no longer intersecting
-                        if (video === currentPlayingVideo) { video.pause(); } else { video.pause(); } 
-                        
-                        // If UI was hidden and unlock button was visible, hide it when scrolling away
-                        if(isUiHidden && unlockUiButton.classList.contains('visible')) {
-                            unlockUiButton.classList.remove('visible');
-                            firstSwipeUpTime = 0; 
-                        }
+                        video.pause();
                     }
                 });
-            }, options);
-            // Observe all video slides
-            document.querySelectorAll('.video-slide').forEach(slide => { intersectionObserver.observe(slide); });
+            }, { root: tiktokFeed, threshold: 0.65 });
+            document.querySelectorAll('.video-slide').forEach(slide => intersectionObserver.observe(slide));
         }
 
-        // Function to format time from seconds to MM:SS
         function formatTime(totalSeconds) {
-            totalSeconds = Math.floor(totalSeconds); 
             const minutes = Math.floor(totalSeconds / 60); 
-            const seconds = totalSeconds % 60; 
+            const seconds = Math.floor(totalSeconds % 60); 
             return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
         }
+        
+        // Initial Load
+        setLanguage('ar');
+
     </script>
 </body>
 </html>
-```
-
-التغيير الرئيسي هو في CSS الخاص بشريط التقدم:
-```css
-.progress-bar-indicator {
-    width: 0%;
-    height: 100%;
-    background-color: white;
-    transition: width 0.1s linear; /* هذا هو السطر الذي يجعل الحركة سلسة */
-}
-```
-لقد أضفت `transition: width 0.1s linear;` إلى `.progress-bar-indicator`. هذا يجعل أي تغيير في عرض الشريط يحدث بشكل تدريجي على مدى 0.1 ثانية، مما يعطي انطباعاً بالحركة السلسة بدلاً من التقطع.
-
-جرب الآن، وأخبرني إذا كانت الحركة تبدو أف
